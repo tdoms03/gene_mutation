@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Biosim Sandbox — Genetic Neural Network Evolution</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top-bar">
+    <div class="brand">
+      <span class="logo-dot"></span>
+      <h1>Biosim Sandbox</h1>
+      <span class="subtitle">Genetic Neural Network Evolution</span>
+    </div>
+    <div class="stats-bar">
+      <div class="stat-pill">
+        <span class="stat-label">Generation</span>
+        <span id="stat-gen" class="stat-val">1</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-label">Step</span>
+        <span id="stat-step" class="stat-val">0 / 300</span>
+      </div>
+      <div class="stat-pill highlight">
+        <span class="stat-label">Last Survival</span>
+        <span id="stat-survival" class="stat-val">—</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-label">Inside Safe Zone</span>
+        <span id="stat-inside" class="stat-val">0%</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="workspace">
+    <!-- Left Sidebar: Simulation Controls & Environment -->
+    <aside class="panel controls-panel">
+      <section class="panel-section">
+        <h2>Playback &amp; Speed</h2>
+        <div class="btn-group">
+          <button id="btn-play-pause" class="btn primary">Pause</button>
+          <button id="btn-step-gen" class="btn" title="Instantly finish current generation">Skip Gen</button>
+          <button id="btn-reset" class="btn danger">Reset Sim</button>
+        </div>
+        <div class="speed-selector">
+          <label>Speed Mode</label>
+          <div class="segmented-control" id="speed-control">
+            <button data-speed="1" class="active">1x</button>
+            <button data-speed="5">5x</button>
+            <button data-speed="20">20x</button>
+            <button data-speed="max" title="1 full generation per frame!">WARP</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel-section">
+        <h2>Environment &amp; Obstacles</h2>
+        <div class="control-row">
+          <label for="select-zone">Safe Zone (Green)</label>
+          <select id="select-zone">
+            <option value="right_strip">East Strip (Right 20%)</option>
+            <option value="right_half">East Half (Right 50%)</option>
+            <option value="left_right">West &amp; East Edges</option>
+            <option value="center_circle">Center Oasis (Circle)</option>
+            <option value="corners">Four Corners</option>
+            <option value="top_left">North-West Corner</option>
+          </select>
+        </div>
+
+        <div class="control-row">
+          <label for="select-barrier">Wall / Obstacle Preset</label>
+          <select id="select-barrier">
+            <option value="none">No Obstacles</option>
+            <option value="center_wall" selected>Central Vertical Wall</option>
+            <option value="funnel">Narrow Center Funnel</option>
+            <option value="staggered">Staggered Baffles (Maze)</option>
+            <option value="box_trap">U-Shape Trap</option>
+          </select>
+        </div>
+
+        <div class="draw-tools">
+          <label>Interactive Canvas Click Action</label>
+          <div class="segmented-control" id="tool-control">
+            <button data-tool="inspect" class="active">Inspect Dot</button>
+            <button data-tool="wall">Draw Wall</button>
+            <button data-tool="erase">Erase Wall</button>
+          </div>
+          <button id="btn-clear-walls" class="btn small-btn">Clear All Walls</button>
+        </div>
+      </section>
+
+      <section class="panel-section">
+        <h2>Genetics &amp; Hyperparameters</h2>
+        <div class="slider-group">
+          <div class="slider-header">
+            <span>Population Size</span>
+            <span id="val-pop">400</span>
+          </div>
+          <input type="range" id="slider-pop" min="100" max="1000" step="50" value="400">
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-header">
+            <span>Genes (Synapses) per Dot</span>
+            <span id="val-genes">10</span>
+          </div>
+          <input type="range" id="slider-genes" min="2" max="32" step="2" value="10">
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-header">
+            <span>Internal Hidden Neurons</span>
+            <span id="val-hidden">3</span>
+          </div>
+          <input type="range" id="slider-hidden" min="1" max="8" step="1" value="3">
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-header">
+            <span>Steps per Generation</span>
+            <span id="val-steps">250</span>
+          </div>
+          <input type="range" id="slider-steps" min="100" max="600" step="25" value="250">
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-header">
+            <span>Point Mutation Rate</span>
+            <span id="val-mutation">2.0%</span>
+          </div>
+          <input type="range" id="slider-mutation" min="0" max="15" step="0.5" value="2.0">
+        </div>
+        <p class="hint-text">Population &amp; Genome size changes apply on the next generation or Reset.</p>
+      </section>
+    </aside>
+
+    <!-- Center: Sandbox Arena -->
+    <section class="arena-container">
+      <div class="canvas-wrapper">
+        <canvas id="arena-canvas" width="640" height="640"></canvas>
+      </div>
+      <div class="arena-legend">
+        <span><i class="legend-box safe"></i> Survival Zone (Reproduce at end of epoch)</span>
+        <span><i class="legend-box wall"></i> Solid Barrier Wall</span>
+        <span><i class="legend-box selected"></i> Selected Dot</span>
+      </div>
+    </section>
+
+    <!-- Right Sidebar: Dot Brain Inspector & Evolution History -->
+    <aside class="panel inspector-panel">
+      <section class="panel-section brain-section">
+        <div class="section-header-row">
+          <h2>Dot Brain &amp; Genome Inspector</h2>
+          <button id="btn-pick-random" class="btn small-btn">Pick Random</button>
+        </div>
+        <p id="inspector-status" class="sub-caption">Click any dot in the arena to inspect its neural wiring and live activations.</p>
+        
+        <div class="brain-canvas-wrapper">
+          <canvas id="brain-canvas" width="360" height="290"></canvas>
+        </div>
+
+        <div class="genome-display">
+          <div class="genome-header">
+            <span>Hex Genome (Synapse Weights)</span>
+            <span id="dot-color-swatch" class="color-swatch"></span>
+          </div>
+          <div id="genome-pills" class="genome-pills"></div>
+        </div>
+      </section>
+
+      <section class="panel-section chart-section">
+        <h2>Survival Rate Over Generations</h2>
+        <div class="chart-wrapper">
+          <canvas id="chart-canvas" width="360" height="150"></canvas>
+        </div>
+      </section>
+    </aside>
+  </main>
+
+  <script src="simulation.js"></script>
+</body>
+</html>
+
